@@ -1,4 +1,6 @@
-﻿using BlazorApp1;
+﻿#define Render // ← 部署 Render 时启用，调试时注释掉这行
+
+using BlazorApp1;
 using BlazorApp1.Components;
 using System.Net;
 using System.Net.Sockets;
@@ -6,25 +8,29 @@ using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//var cert = new X509Certificate2(
-//    Path.Combine(AppContext.BaseDirectory, "Input/FtpCert1.pfx"),
-//    "CertFtp");
-//string localIPAddress = GetLocalIPAddress();
-//string url = $"https://{localIPAddress}:5000"; // 你可以修改端口号
-//// 监听本机IP地址并配置端口
-//builder.WebHost.UseUrls(url);
-//// ✅ 配置 HTTPS 使用自定义证书
-//builder.WebHost.ConfigureKestrel(options =>
-//{
-//    options.Listen(IPAddress.Parse(localIPAddress), 5000, listenOptions =>
-//    {
-//        listenOptions.UseHttps(cert);
-//    });
-//});
-
-// 从 Render 环境变量获取端口（否则默认为 5000）
+#if Render
+// Render 环境配置（使用 http 并从环境变量获取端口）
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+#else
+// 本地调试配置（使用 https 和证书）
+var cert = new X509Certificate2(
+    Path.Combine(AppContext.BaseDirectory, "Input/FtpCert1.pfx"),
+    "CertFtp");
+
+string localIPAddress = GetLocalIPAddress();
+string url = $"https://{localIPAddress}:5000";
+builder.WebHost.UseUrls(url);
+
+// 配置 Kestrel 使用 HTTPS 和本地证书
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Listen(IPAddress.Parse(localIPAddress), 5000, listenOptions =>
+    {
+        listenOptions.UseHttps(cert);
+    });
+});
+#endif
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -37,10 +43,11 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+#if !Render
 app.UseHttpsRedirection();
+#endif
 
 app.UseStaticFiles();
 app.UseAntiforgery();
@@ -53,6 +60,7 @@ app.Run();
 
 
 // 获取本机IP地址
+#pragma warning disable CS8321 // 已声明本地函数，但从未使用过
 static string GetLocalIPAddress()
 {
     foreach (var ip in Dns.GetHostEntry(Dns.GetHostName()).AddressList)
@@ -65,3 +73,4 @@ static string GetLocalIPAddress()
     }
     throw new Exception("未找到本地局域网 IP 地址");
 }
+#pragma warning restore CS8321 // 已声明本地函数，但从未使用过
