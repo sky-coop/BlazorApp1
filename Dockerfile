@@ -1,22 +1,18 @@
-# 使用 .NET 8 ASP.NET Core 基础镜像
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-WORKDIR /app
-EXPOSE 80
-
-# 使用 .NET SDK 构建项目
+# 使用 .NET 8 SDK 构建镜像
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# 拷贝 csproj 并还原依赖项
-COPY ["BlazorApp1.csproj", "./"]
-RUN dotnet restore "./BlazorApp1.csproj"
+# 复制 csproj 并还原依赖项
+COPY ["BlazorApp1/BlazorApp1.csproj", "BlazorApp1/"]
+RUN dotnet restore "BlazorApp1/BlazorApp1.csproj"
 
-# 拷贝项目代码并构建
+# 复制其余源码
 COPY . .
+WORKDIR "/src/BlazorApp1"
 RUN dotnet publish "BlazorApp1.csproj" -c Release -o /app/publish
 
-# 发布镜像
-FROM base AS final
+# 构建运行时镜像
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "BlazorApp1.dll"]
