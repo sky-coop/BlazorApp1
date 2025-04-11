@@ -1,0 +1,49 @@
+﻿@page "/counter"
+@rendermode InteractiveServer
+@using BlazorApp1.Session;
+@using BlazorApp1.UserData;
+@inherits AuthorizedComponentBase
+@implements IDisposable
+
+<PageTitle>计数器</PageTitle>
+
+@if (UserData != null)
+{
+    <h3>欢迎，@CurrentUsername！</h3>
+    <h3>计数器</h3>
+    <p role="status">Current count: @UserData.DataCounter.Number</p>
+    <button class="btn btn-primary" @onclick="IncrementCount">+1</button>
+}
+else
+{
+    <h2>您还未登录！</h2>
+    <button class="btn btn-primary" @onclick="GotoHome">登录</button>
+}
+
+@code {
+    private Timer? timer;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (UserData != null)
+        {
+            timer = new Timer(o =>
+            {
+                IncrementCount();
+                // 触发UI重新渲染
+                InvokeAsync(StateHasChanged);
+                UserData.Save();
+            }, null, 0, 2000);
+        }
+    }
+    private void IncrementCount()
+    {
+        if (UserData == null) return;
+        UserData.DataCounter.Number++;
+    }
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}

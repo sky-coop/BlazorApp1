@@ -1,0 +1,24 @@
+﻿@page "/login"
+@using Session;
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        var context = HttpContextAccessor.HttpContext;
+        if (context is not null && UsersState.InstantUsername != null)
+        {
+            context.Response.Cookies.Append(UsersState.CookieKey, UsersState.InstantUsername, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false, // 本地测试为 false，生产环境改为 true
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.Now.Add(UsersState.TimeOutSpan)
+            });
+        }
+        UsersState.InstantUsername = null;
+        // 跳转到 Login 页面
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

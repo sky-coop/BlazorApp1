@@ -1,0 +1,73 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using BlazorApp1
+@using BlazorApp1.Session;
+@inherits AuthorizedComponentBase
+
+<PageTitle>主页</PageTitle>
+
+@if (CurrentUsername == null)
+{
+    <h3>登录：</h3>
+    <input @bind="loginUsername" placeholder="请输入用户名" />
+    <input @bind="loginPassword" placeholder="请输入密码" />
+    <button class="btn btn-primary" @onclick="TryLogin">登录</button>
+    @if (loginFailed)
+    {
+        <p style="color:red;">登录失败</p>
+    }
+    <LineBreak/>
+    <h3>注册：</h3>
+    <input @bind="regUsername" placeholder="请输入用户名" />
+    <input @bind="regPassword" placeholder="请输入密码" />
+    <button class="btn btn-primary" @onclick="TryRegister">注册</button>
+    @if (regFailed)
+    {
+        <p style="color:red;">注册失败</p>
+    }
+}
+else
+{
+    <h3>欢迎，@CurrentUsername！</h3>
+    <p>这是仅限授权用户查看的内容。</p>
+
+    <button class="btn btn-secondary" @onclick="Logout">退出登录</button>
+}
+
+@code {
+    private string loginUsername = string.Empty;
+    private string loginPassword = string.Empty;
+    private bool loginFailed = false;
+
+    private string regUsername = string.Empty;
+    private string regPassword = string.Empty;
+    private bool regFailed = false;
+    
+    public void TryLogin()
+    {
+        if (LoginDB.TryLogin(loginUsername, loginPassword))
+        {
+            Login(loginUsername);
+        }
+        else loginFailed = true;
+    }
+    public void TryRegister()
+    {
+        if (!LoginDB.HasUser(regUsername))
+        {
+            LoginDB.AddUser(regUsername, regPassword);
+            Login(regUsername);
+        }
+        else regFailed = true;
+    }
+    public void Login(string username)
+    {
+        UsersState.InstantUsername = username;
+        Navigation.NavigateTo("/login", true);
+    }
+    public void Logout()
+    {
+        CurrentUsername = null;
+        Navigation.NavigateTo("/logout", true);
+    }
+}
